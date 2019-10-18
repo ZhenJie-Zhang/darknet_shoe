@@ -1,4 +1,214 @@
-# Ubuntu 16.04 環境，架設yolov3
+
+# 安裝條件
+
+檢查顯示卡是否可用
+
+    lspci -nnk | grep -i nvidia
+
+會出現類似下面畫面：
+
+    01:00.0 VGA compatible controller [0300]: NVIDIA Corporation Device [10de:1b82] (rev a1)
+     Kernel driver in use: nvidia
+     Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+    01:00.1 Audio device [0403]: NVIDIA Corporation Device [10de:10f0] (rev a1)
+    02:00.0 VGA compatible controller [0300]: NVIDIA Corporation Device [10de:1b82] (rev a1)
+     Kernel driver in use: nvidia
+     Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+    02:00.1 Audio device [0403]: NVIDIA Corporation Device [10de:10f0] (rev a1)
+
+
+# 前期準備
+
+檢查升級：
+
+    sudo apt-get update
+
+檢查gcc、 python和pip
+
+    sudo apt-get install -y python-pip
+    
+    sudo apt-get install -y build-essential
+    sudo apt-get install -y cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+    sudo apt-get install -y libopencv-dev
+    sudo apt install -y g++-5
+    sudo apt install -y gcc-5
+
+# 安裝驅動程式
+
+檢查是否有安裝Nvidia驅動程式:
+
+    nvidia-smi
+
+若沒有安裝則進行安裝
+首先先下載您電腦上安裝的GPU的驅動程式：(若您不是tesla-K80，則按下這裡下載)
+
+    wget http://us.download.nvidia.com/tesla/418.87/NVIDIA-Linux-x86_64-418.87.01.run
+
+添加執行權限：
+
+    sudo chmod +x NVIDIA-Linux-x86_64-418.87.01.run
+
+運行驅動安裝程序
+
+    sudo ./NVIDIA-Linux-x86_64-418.87.01.run
+
+安裝後運行下面命令檢查是否安裝成功：
+
+    nvidia-smi
+
+會出現
+
+    Tue Oct 16 14:47:47 2018 
+    + — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — -+
+    | NVIDIA-SMI 390.87 Driver Version: 390.87 |
+    | — — — — — — — — — — — — — — — -+ — — — — — — — — — — — + — — — — — — — — — — — +
+    | GPU Name Persistence-M| Bus-Id Disp.A | Volatile Uncorr. ECC |
+    | Fan Temp Perf Pwr:Usage/Cap| Memory-Usage | GPU-Util Compute M. |
+    |===============================+======================+======================|
+    | 0 GeForce GTX 107… Off | 00000000:01:00.0 Off | N/A |
+    | 39% 42C P0 40W / 180W | 0MiB / 8119MiB | 0% Default |
+    + — — — — — — — — — — — — — — — -+ — — — — — — — — — — — + — — — — — — — — — — — +
+    | 1 GeForce GTX 107… Off | 00000000:02:00.0 Off | N/A |
+    | 0% 33C P0 38W / 180W | 0MiB / 8119MiB | 2% Default |
+    + — — — — — — — — — — — — — — — -+ — — — — — — — — — — — + — — — — — — — — — — — +
+     
+    + — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — -+
+    | Processes: GPU Memory |
+    | GPU PID Type Process name Usage |
+    |=============================================================================|
+    | No running processes found |
+    + — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — -+
+
+
+# 安裝CUDA
+
+首先下載CUDA：
+
+    wget http://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run
+
+添加執行權限：
+
+    chmod +x cuda_10.1.243_418.87.00_linux.run
+
+開始安裝CUDA：
+
+    sudo sh cuda_10.1.243_418.87.00_linux.run --driver --silent
+    sudo sh cuda_10.1.243_418.87.00_linux.run --toolkit --silent
+    sudo sh cuda_10.1.243_418.87.00_linux.run --samples --silent
+
+若出現Missing recommended library: libGLU.so，則進行下面命令：
+
+    sudo apt-get install libglu1-mesa libxi-dev libxmu-dev libglu1-mesa-dev
+
+安裝CUDA之後，還是需要將CUDA添加至~/.bashrc當中：
+
+    export PATH=/usr/local/cuda/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/cuda/64:$LD_LIBRARY_PATH
+
+然後再激活~/.bashrc
+
+    source ~/.bashrc
+
+再檢查是否安裝完成：
+
+    nvcc -V
+
+出現下面信息表示安裝成功：
+
+    nvcc: NVIDIA (R) Cuda compiler driver
+    Copyright © 2005–2018 NVIDIA Corporation
+    Built on Sat_Aug_25_21:08:01_CDT_2018
+    Cuda compilation tools, release 10.0, V10.0.130
+
+# 安裝docker-ce
+```console
+# add the GPG key for the official Docker repository to the system
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+# add the Docker repository to APT sources
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# update the package database with the Docker packages from the newly added repo
+sudo apt-get update
+
+# install from the Docker repo instead of the default Ubuntu 16.04 repo
+apt-cache policy docker-ce
+
+# install docker
+sudo apt-get install -y docker-ce
+
+# check if the docker daemon is running
+sudo systemctl status docker
+
+# add user to docker group
+# 不知道GCP的root密碼
+#　sudo usermod -aG docker ${USER}
+# su - ${USER}
+# id -nG
+```
+
+# 安裝nvidia-docker
+
+```console
+
+# Install nvidia-runtime
+# Download nvidia-runtime packages
+curl -s -L https://nvidia.github.io/nvidia-container-runtime/gpgkey | \
+  sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-container-runtime/ubuntu16.04/amd64/nvidia-container-runtime.list | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-runtime.list
+sudo apt-get update
+
+# Install nvidia-runtime
+sudo apt-get install nvidia-container-runtime
+
+# Docker Engine setup
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo tee /etc/systemd/system/docker.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd --host=fd:// --add-runtime=nvidia=/usr/bin/nvidia-container-runtime
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# Daemon configuration file
+sudo tee /etc/docker/daemon.json <<EOF
+{
+    "runtimes": {
+        "nvidia": {
+            "path": "/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }, 
+    "default-runtime": "nvidia"  # add this line
+}
+EOF
+sudo pkill -SIGHUP dockerd
+
+# Command line
+sudo dockerd --add-runtime=nvidia=/usr/bin/nvidia-container-runtime [...]
+
+# If you have nvidia-docker 1.0 installed: we need to remove it and all existing GPU containers
+docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
+sudo apt-get purge -y nvidia-docker
+
+# Add the package repositories
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | \
+  sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64/nvidia-docker.list | \
+  sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+
+# Install nvidia-docker2 and reload the Docker daemon configuration
+sudo apt-get install -y nvidia-docker
+sudo pkill -SIGHUP dockerd
+
+# Test nvidia-smi with the latest official CUDA image
+sudo docker run --runtime=nvidia --rm nvidia/cuda nvidia-smi
+```
+
+# 建置yolov3(darknet)映像檔
 ```console
 
 # 選擇cuda:10.1、未安裝cudnn7、devel開發包版本映像檔
