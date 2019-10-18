@@ -274,7 +274,7 @@ cd /root/darknet/
 shoe_person/cfg/obj.data \
 shoe_person/cfg/yolov3.cfg \
 shoe_person/cfg/weights/yolov3_last.weights \
-data/test3.jpg \
+data/person.jpg \
 -dont_show
 ```
 
