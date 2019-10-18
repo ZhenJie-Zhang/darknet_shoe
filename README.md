@@ -1,3 +1,73 @@
+# Ubuntu 16.04 環境，架設yolov3
+```console
+
+# 選擇cuda:10.1、未安裝cudnn7、devel開發包版本映像檔
+sudo docker run -it nvcr.io/nvidia/cuda:10.1-devel-ubuntu16.04 bash
+
+# 更新與安裝需要套件
+apt-get -y update
+apt-get install -y wget cmake git vim build-essential \
+    libgtk2.0-dev pkg-config libavcodec-dev \
+    libavformat-dev libswscale-dev libopencv-dev
+apt install -y g++-5 gcc-5
+
+git clone https://github.com/AlexeyAB/darknet; cd darknet
+
+git clone https://github.com/AlexeyAB/darknet
+  
+# 使用GPU設定
+sed -i 's/OPENCV=0/OPENCV=1/g' Makefile
+sed -i 's/GPU=0/GPU=1/g' Makefile
+
+wget -O image.c "https://www.dropbox.com/s/rt50fw6a58hty4i/image.c?dl=1"
+mv image.c ./src/
+make
+
+mkdir -p result_img/
+mkdir -p shoe_person/cfg/weights/
+mkdir -p shoe_person/yolo1
+cd shoe_person/cfg/weights/
+wget -O yolov3_last.weights "https://www.dropbox.com/s/ypdps7fldbzl5mz/yolov3_last.weights?dl=1"
+
+cd ../
+wget -O obj.data "https://www.dropbox.com/s/aj2mzvmf7hfs94t/obj.data?dl=1"
+wget -O obj.names "https://www.dropbox.com/s/9a1yc9alt1z7tql/obj.names?dl=1"
+wget -O yolov3.cfg "https://www.dropbox.com/s/ek0bm4kzg8tgs9j/yolov3.cfg?dl=1"
+
+# 測試
+./darknet detector test \
+shoe_person/cfg/obj.data \
+shoe_person/cfg/yolov3.cfg \
+shoe_person/cfg/weights/yolov3_last.weights \
+data/person.jpg \
+--don-show
+```
+---
+# 使用docker pull
+- https://hub.docker.com/r/abc1233108/darknet_sneaker
+## How to build the Docker container
+```
+docker pull abc1233108/darknet_sneaker_gpu:v1
+```
+
+```
+docker run -it --name darknet_sneaker abc1233108/darknet_sneaker_gpu:v1
+```
+
+## How to test the image
+```
+cd /root/darknet/
+```
+
+```
+./darknet detector test \
+shoe_person/cfg/obj.data \
+shoe_person/cfg/yolov3.cfg \
+shoe_person/cfg/weights/yolov3_last.weights \
+data/test3.jpg \
+-dont_show
+```
+
 # Yolo-v3 and Yolo-v2 for Windows and Linux
 ### (neural network for object detection) - Tensor Cores can be used on [Linux](https://github.com/AlexeyAB/darknet#how-to-compile-on-linux) and [Windows](https://github.com/AlexeyAB/darknet#how-to-compile-on-windows-using-vcpkg)
 
